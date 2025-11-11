@@ -1,17 +1,18 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, MapPin, Bed, Users, Filter } from 'lucide-react';
-interface Listing { id: number; title: string; price: string; location: string; beds: number; occupants: number; }
-const mockListings: Listing[] = [
-  { id: 1, title: "Cozy Room in Ikeja", price: "₦50,000", location: "Lagos", beds: 1, occupants: 2 },
-  { id: 2, title: "Shared Flat in Wuse", price: "₦40,000", location: "Abuja", beds: 1, occupants: 3 },
-  { id: 3, title: "Student Hostel in UNILAG", price: "₦30,000", location: "Lagos", beds: 1, occupants: 4 },
-  { id: 4, title: "Executive Room in VI", price: "₦120,000", location: "Lagos", beds: 1, occupants: 1 },
-];
+import { Database } from '@/types/supabase';
+type Listing = Database['public']['Tables']['listings']['Row'];
 export default function Home() {
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("");
-  const filtered = mockListings.filter(l => l.title.toLowerCase().includes(search.toLowerCase()) && (!location || l.location === location));
+  useEffect(() => {
+    fetch('/api/listings').then(r => r.json()).then(data => { setListings(data); setLoading(false); }).catch(() => setLoading(false));
+  }, []);
+  const filtered = listings.filter(l => l.title.toLowerCase().includes(search.toLowerCase()) && (!location || l.location === location));
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   return (
     <>
       <header className="bg-gradient-to-r from-green-600 to-green-800 text-white">
@@ -21,9 +22,8 @@ export default function Home() {
             <nav className="flex gap-6 text-sm">
               <a href="#" className="hover:underline">Post Ad</a>
               <a href="#" className="hover:underline">How it Works</a>
-              <a href="#" className="hover:underline">Contact</a>
               <a href="/contact" className="hover:underline">Contact</a>
-      </nav>
+            </nav>
           </div>
         </div>
       </header>
@@ -32,18 +32,18 @@ export default function Home() {
           <div className="bg-white rounded-lg shadow-md p-4 flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
-              <input type="text" placeholder="Search rooms, flats, hostels..." className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" value={search} onChange={e => setSearch(e.target.value)} />
+              <input type="text" placeholder="Search..." className="w-full pl-10 pr-4 py-3 border rounded-lg" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <div className="flex-1 relative">
               <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
-              <select className="w-full pl-10 pr-4 py-3 border rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-500" value={location} onChange={e => setLocation(e.target.value)}>
+              <select className="w-full pl-10 pr-4 py-3 border rounded-lg" value={location} onChange={e => setLocation(e.target.value)}>
                 <option value="">All Locations</option>
                 <option value="Lagos">Lagos</option>
                 <option value="Abuja">Abuja</option>
                 <option value="Port Harcourt">Port Harcourt</option>
               </select>
             </div>
-            <button className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition flex items-center gap-2"><Filter className="w-5 h-5" /> Filter</button>
+            <button className="bg-green-600 text-white px-8 py-3 rounded-lg flex items-center gap-2"><Filter className="w-5 h-5" /> Filter</button>
           </div>
         </div>
       </section>
@@ -71,15 +71,11 @@ export default function Home() {
         </div>
       </main>
       <footer className="bg-gray-900 text-white py-8 mt-16">
-        <div className="container mx-auto px-4 text-center"><p>© 2025 Flatshare Naija. Find your perfect share in Nigeria.</p></div>
+        <div className="container mx-auto px-4 text-center"><p>© 2025 Flatshare Naija. Powered by Supabase.</p></div>
       </footer>
     </>
   );
 }
 function HomeIcon() {
-  return (
-    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-    </svg>
-  );
+  return <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
 }

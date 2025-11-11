@@ -1,0 +1,2 @@
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export interface Database { public: { Tables: { listings: { Row: { id: number; title: string; price: string; location: string; beds: number; occupants: number; created_at: string }; Insert: { title: string; price: string; location: string; beds: number; occupants: number; created_at?: string }; Update: { title?: string; price?: string; location?: string; beds?: number; occupants?: number } } } } } }
