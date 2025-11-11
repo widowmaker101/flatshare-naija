@@ -22,7 +22,8 @@ export default function Home() {
               <a href="#" className="hover:underline">Post Ad</a>
               <a href="#" className="hover:underline">How it Works</a>
               <a href="#" className="hover:underline">Contact</a>
-            </nav>
+              <a href="/contact" className="hover:underline">Contact</a>
+      </nav>
           </div>
         </div>
       </header>
