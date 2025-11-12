@@ -1,31 +1,32 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, MapPin, Bed, Users, Filter } from 'lucide-react';
+import { Search, MapPin, Bed, Users, Filter, LogOut } from 'lucide-react';
 import { Database } from '@/types/supabase';
+import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 type Listing = Database['public']['Tables']['listings']['Row'];
 
 export default function Home() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("");
+  const session = useSession();
+  const supabase = useSupabaseClient();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchListings = async () => {
       try {
         const res = await fetch('/api/listings');
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.details || err.error || 'Unknown error');
-        }
+        if (!res.ok) throw new Error('Failed to load');
         const data = await res.json();
         setListings(Array.isArray(data) ? data : []);
-      } catch (err: any) {
-        console.error('Fetch error:', err);
-        setError(err.message || 'Failed to load listings');
+      } catch {
+        toast.error('Could not load listings');
         setListings([]);
       } finally {
         setLoading(false);
@@ -34,34 +35,12 @@ export default function Home() {
     fetchListings();
   }, []);
 
-  const filtered = Array.isArray(listings)
-    ? listings.filter(l =>
-        l.title.toLowerCase().includes(search.toLowerCase()) &&
-        (!location || l.location === location)
-      )
-    : [];
+  const filtered = listings.filter(l =>
+    l.title.toLowerCase().includes(search.toLowerCase()) &&
+    (!location || l.location === location)
+  );
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-lg">Loading listings from Supabase...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md text-center">
-          <p className="text-red-800 font-semibold mb-2">Connection Error</p>
-          <p className="text-sm text-red-600">{error}</p>
-          <p className="text-xs text-gray-500 mt-4">
-            Check: <code className="bg-gray-200 px-2 py-1 rounded">.env.local</code> has correct keys
-          </p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
   return (
     <>
@@ -72,9 +51,7 @@ export default function Home() {
               <HomeIcon /> Flatshare Naija
             </h1>
             <nav className="flex gap-6 text-sm">
-              <a href="#" className="hover:underline">Post Ad</a>
-              <a href="#" className="hover:underline">How it Works</a>
-              <a href="/contact" className="hover:underline">Contact</a>
+              <AuthStatus session={session} supabase={supabase} />
             </nav>
           </div>
         </div>
@@ -87,8 +64,8 @@ export default function Home() {
               <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search rooms, flats, hostels..."
-                className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="Search rooms, flats..."
+                className="w-full pl-10 pr-4 py-3 border rounded-lg"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
@@ -96,17 +73,16 @@ export default function Home() {
             <div className="flex-1 relative">
               <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
               <select
-                className="w-full pl-10 pr-4 py-3 border rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full pl-10 pr-4 py-3 border rounded-lg"
                 value={location}
                 onChange={e => setLocation(e.target.value)}
               >
                 <option value="">All Locations</option>
                 <option value="Lagos">Lagos</option>
                 <option value="Abuja">Abuja</option>
-                <option value="Port Harcourt">Port Harcourt</option>
               </select>
             </div>
-            <button className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition flex items-center gap-2">
+            <button className="bg-green-600 text-white px-8 py-3 rounded-lg flex items-center gap-2">
               <Filter className="w-5 h-5" /> Filter
             </button>
           </div>
@@ -119,31 +95,25 @@ export default function Home() {
           <p className="text-gray-600">{filtered.length} listings</p>
         </div>
 
-        {filtered.length === 0 ? (
-          <p className="text-center text-gray-500 py-10">No listings found. Try adjusting your filters.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map(l => (
-              <div key={l.id} className="bg-white rounded-xl shadow-md hover:shadow-xl transition">
-                <div className="bg-gray-200 border-2 border-dashed rounded-t-xl w-full h-48" />
-                <div className="p-5">
-                  <h3 className="font-semibold text-lg mb-2">{l.title}</h3>
-                  <p className="text-2xl font-bold text-green-600 mb-2">{l.price}<span className="text-sm text-gray-500">/month</span></p>
-                  <p className="text-gray-600 flex items-center gap-1 mb-3">
-                    <MapPin className="w-4 h-4" /> {l.location}
-                  </p>
-                  <div className="flex gap-4 text-sm text-gray-500">
-                    <span className="flex items-center gap-1"><Bed className="w-4 h-4" /> {l.beds} bed</span>
-                    <span className="flex items-center gap-1"><Users className="w-4 h-4" /> {l.occupants} sharing</span>
-                  </div>
-                  <button className="mt-4 w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
-                    View Details
-                  </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filtered.map(l => (
+            <div key={l.id} className="bg-white rounded-xl shadow-md hover:shadow-xl transition">
+              <div className="bg-gray-200 border-2 border-dashed rounded-t-xl w-full h-48" />
+              <div className="p-5">
+                <h3 className="font-semibold text-lg mb-2">{l.title}</h3>
+                <p className="text-2xl font-bold text-green-600 mb-2">{l.price}<span className="text-sm text-gray-500">/month</span></p>
+                <p className="text-gray-600 flex items-center gap-1 mb-3"><MapPin className="w-4 h-4" /> {l.location}</p>
+                <div className="flex gap-4 text-sm text-gray-500">
+                  <span className="flex items-center gap-1"><Bed className="w-4 h-4" /> {l.beds} bed</span>
+                  <span className="flex items-center gap-1"><Users className="w-4 h-4" /> {l.occupants} sharing</span>
                 </div>
+                <button className="mt-4 w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
+                  View Details
+                </button>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
       </main>
 
       <footer className="bg-gray-900 text-white py-8 mt-16">
@@ -162,4 +132,24 @@ function HomeIcon() {
             d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
     </svg>
   );
+}
+
+function AuthStatus({ session, supabase }: { session: any; supabase: any }) {
+  if (session) {
+    return (
+      <>
+        <a href="/post-ad" className="hover:underline">Post Ad</a>
+        <button
+          onClick={async () => {
+            await supabase.auth.signOut();
+            window.location.href = '/';
+          }}
+          className="hover:underline flex items-center gap-1"
+        >
+          <LogOut className="w-4 h-4" /> Logout
+        </button>
+      </>
+    );
+  }
+  return <a href="/login" className="hover:underline">Login</a>;
 }
