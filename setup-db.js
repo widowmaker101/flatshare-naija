@@ -34,13 +34,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
       ('Executive Room in VI', '₦120,000', 'Lagos', 1, 1);
   `;
 
-  const { error } = await supabase.rpc('exec_sql', { sql });
-
-  if (error) {
-    console.error('Failed to create table:', error.message);
-    console.log('\nTip: exec_sql may not be enabled. Use Supabase dashboard SQL editor instead.');
-    process.exit(1);
+  try {
+    const { error } = await supabase.rpc('exec_sql', { sql });
+    if (error) throw error;
+    console.log('Table created + 4 listings inserted!');
+  } catch (err) {
+    const e = err as { message?: string };
+    console.error('RPC failed (exec_sql not enabled):', e.message || err);
+    console.log('\nFix: Run this SQL in Supabase dashboard → SQL Editor:');
+    console.log(sql);
   }
-
-  console.log('Table created + 4 listings inserted!');
 })();
